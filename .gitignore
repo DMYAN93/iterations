@@ -1,0 +1,16 @@
+# Build output
+build/
+
+# vcpkg generated folders
+vcpkg_installed/
+
+# Compiled binaries
+*.exe
+*.dll
+*.obj
+*.pdb
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
