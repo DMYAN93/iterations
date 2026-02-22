@@ -1,25 +1,23 @@
 #include "Game.h"
 #include <SDL3/SDL.h>
-#include "systems/RenderSystem.h"
-#include "components/TransformComponent.h"
-#include "components/RenderComponent.h"
+#include "GameplayState.h"
 
 namespace Core {
 
-Game::Game(const std::string& title, i32 width, i32 height) {
+Game::Game(const std::string& title, i32 width, i32 height)
+    : m_width(width), m_height(height) {
     m_window = std::make_unique<Window>(title, width, height);
     if (!m_window->IsValid()) {
         SDL_Log("Failed to initialize game window.");
         return;
     }
 
-    // Create a test entity
-    ECS::Entity e = m_world.CreateEntity();
-    m_world.AddComponent<Components::TransformComponent>(e, {100.0f, 100.0f});
-    m_world.AddComponent<Components::RenderComponent>(e, {50, 50, 255, 100, 100});
+    m_textureManager = std::make_unique<TextureManager>(m_window->GetRenderer());
 
-    // Register systems
-    m_world.AddRenderSystem(std::make_unique<Systems::RenderSystem>(m_window->GetRenderer()));
+    auto gameplay = std::make_unique<GameplayState>(width, height);
+    gameplay->InitEntities(*this);
+    gameplay->InitSystems(*this);
+    PushState(std::move(gameplay));
 
     m_running = true;
 }
@@ -27,10 +25,12 @@ Game::Game(const std::string& title, i32 width, i32 height) {
 void Game::Run() {
     u32 lastTime = SDL_GetTicks();
 
-    while (m_running) {
+    while (m_running && !m_states.empty()) {
         u32 currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
+
+        m_input.BeginFrame();
 
         ProcessInput();
         Update(deltaTime);
@@ -45,18 +45,59 @@ void Game::ProcessInput() {
             m_running = false;
         }
     }
+
+    if (!m_states.empty()) {
+        m_states.back()->ProcessInput(*this);
+    }
 }
 
 void Game::Update(float deltaTime) {
-    m_world.UpdateSystems(deltaTime);
+    if (!m_states.empty()) {
+        m_states.back()->Update(*this, deltaTime);
+    }
 }
 
 void Game::Render() {
-    SDL_Renderer* renderer = m_window->GetRenderer();
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    m_world.RenderSystems(0.0f);
-    SDL_RenderPresent(renderer);
+    if (!m_states.empty()) {
+        m_states.back()->Render(*this);
+    }
 }
+
+void Game::PushState(std::unique_ptr<GameState> state) {
+    if (!m_states.empty()) {
+        m_states.back()->OnExit();
+    }
+    m_states.push_back(std::move(state));
+    m_states.back()->OnEnter();
+}
+
+void Game::PopState() {
+    if (m_states.empty()) return;
+    m_states.back()->OnExit();
+    m_states.pop_back();
+    if (!m_states.empty()) {
+        m_states.back()->OnEnter();
+    }
+}
+
+InputManager& Game::GetInput() {
+    return m_input;
+}
+
+TextureManager* Game::GetTextureManager() {
+    return m_textureManager.get();
+}
+
+SDL_Renderer* Game::GetRenderer() {
+    return m_window->GetRenderer();
+}
+
+GameState* Game::GetStateBelow() {
+    if (m_states.size() < 2) return nullptr;
+    return m_states[m_states.size() - 2].get();
+}
+
+i32 Game::GetWindowWidth() const  { return m_width; }
+i32 Game::GetWindowHeight() const { return m_height; }
 
 } // namespace Core

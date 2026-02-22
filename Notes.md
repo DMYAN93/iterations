@@ -6,7 +6,9 @@
 
 ## Current state
 - Window and game loop working
+- Implemented basic ECS
 
 ## TODO
-- Build ECS
-- Build render system
+- Test with multiple entities
+- add Input System
+- add camera
