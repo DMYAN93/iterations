@@ -38,8 +38,6 @@ void PausedState::Render(Game& game) {
     };
     SDL_RenderFillRect(renderer, &overlay);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-
-    SDL_RenderPresent(renderer);
 }
 
 } // namespace Core

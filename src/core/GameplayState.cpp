@@ -2,16 +2,21 @@
 #include "core/Game.h"
 #include "core/PausedState.h"
 #include <SDL3/SDL.h>
+#include "systems/DebugRendererSystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/MovementSystem.h"
+#include "systems/CollisionSystem.h"
+#include "components/CollisionComponent.h"
 #include "systems/CameraSystem.h"
 #include "systems/TilemapSystem.h"
+#include "systems/AnimationSystem.h"
 #include "components/TransformComponent.h"
 #include "components/RenderComponent.h"
 #include "components/PlayerComponent.h"
 #include "components/CameraComponent.h"
 #include "components/SpriteComponent.h"
 #include "components/TilemapComponent.h"
+#include "components/AnimationComponent.h"
 
 namespace Core {
 
@@ -32,10 +37,39 @@ void GameplayState::InitEntities(Game& game) {
     ECS::Entity playerEntity = m_world.CreateEntity();
     m_world.AddComponent<Components::TransformComponent>(playerEntity, {100.0f, 100.0f});
     m_world.AddComponent<Components::PlayerComponent>(playerEntity, {});
+    m_world.AddComponent<Components::CollisionComponent>(playerEntity, {
+        0.0f,  // offsetX — centered on transform
+        0.0f,  // offsetY — centered on transform
+        12.0f, // width — tighter than the 64px sprite
+        12.0f  // height — adjust once you see the debug rect in game
+    });
 
     SDL_Texture* playerTex = m_textureManager->Load("assets/Idle.png");
     if (playerTex) {
-        m_world.AddComponent<Components::SpriteComponent>(playerEntity, {playerTex, nullptr});
+        m_world.AddComponent<Components::SpriteComponent>(playerEntity, {playerTex, {}, true});
+
+        // Build idle animation clip.
+        // Assumes a horizontal spritesheet with 4 frames, each 32x32px.
+        // Adjust frameW, frameH, and frameCount to match your actual Idle.png.
+        const float frameW     = 64.0f;
+        const float frameH     = 64.0f;
+        const int   frameCount = 2;
+
+        Components::AnimationClip idleClip;
+        idleClip.frameDuration = 0.15f;
+        idleClip.looping       = true;
+
+        for (int i = 0; i < frameCount; ++i) {
+            idleClip.frames.push_back({ i * frameW, 0.0f, frameW, frameH });
+        }
+
+        Components::AnimationComponent anim;
+        anim.clips["idle"]  = std::move(idleClip);
+        anim.currentClip    = "idle";
+        anim.currentFrame   = 0;
+        anim.elapsedTime    = 0.0f;
+
+        m_world.AddComponent<Components::AnimationComponent>(playerEntity, std::move(anim));
     } else {
         m_world.AddComponent<Components::RenderComponent>(playerEntity, {16, 16, 255, 100, 100});
     }
@@ -77,12 +111,23 @@ void GameplayState::InitEntities(Game& game) {
 }
 
 void GameplayState::InitSystems(Game& game) {
-    SDL_Renderer* renderer = game.GetRenderer();
+    SDL_Renderer*        renderer      = game.GetRenderer();
+    Core::DebugRenderer& debugRenderer = game.GetDebugRenderer();
 
-    m_world.AddUpdateSystem(std::make_unique<Systems::MovementSystem>(game.GetInput(), 200.0f));
+    m_world.AddUpdateSystem(std::make_unique<Systems::MovementSystem>(
+        game.GetInput(),
+        game.GetSettings().gameplay.playerSpeed
+    ));
+    m_world.AddUpdateSystem(std::make_unique<Systems::CollisionSystem>());
     m_world.AddUpdateSystem(std::make_unique<Systems::CameraSystem>());
+    m_world.AddUpdateSystem(std::make_unique<Systems::AnimationSystem>());
     m_world.AddRenderSystem(std::make_unique<Systems::TilemapSystem>(renderer));
     m_world.AddRenderSystem(std::make_unique<Systems::RenderSystem>(renderer));
+    m_world.AddRenderSystem(std::make_unique<Systems::DebugRenderSystem>(
+        renderer,
+        debugRenderer,
+        game.GetSettings()
+    ));
 }
 
 void GameplayState::ProcessInput(Game& game) {
@@ -104,7 +149,6 @@ void GameplayState::DrawScene(Game& game) {
 
 void GameplayState::Render(Game& game) {
     DrawScene(game);
-    SDL_RenderPresent(game.GetRenderer());
 }
 
 } // namespace Core

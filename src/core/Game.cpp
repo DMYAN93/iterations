@@ -1,20 +1,29 @@
-#include "Game.h"
+#include "core/Game.h"
+#include "core/GameplayState.h"
 #include <SDL3/SDL.h>
-#include "GameplayState.h"
 
 namespace Core {
 
-Game::Game(const std::string& title, i32 width, i32 height)
-    : m_width(width), m_height(height) {
-    m_window = std::make_unique<Window>(title, width, height);
+Game::Game(SettingsManager settings)
+    : m_settings(std::move(settings)) {
+    m_window = std::make_unique<Window>(
+        m_settings.window.title,
+        m_settings.window.width,
+        m_settings.window.height
+    );
+
     if (!m_window->IsValid()) {
         SDL_Log("Failed to initialize game window.");
         return;
     }
 
     m_textureManager = std::make_unique<TextureManager>(m_window->GetRenderer());
+    m_debugRenderer  = std::make_unique<DebugRenderer>(m_window->GetRenderer(), m_settings);
 
-    auto gameplay = std::make_unique<GameplayState>(width, height);
+    auto gameplay = std::make_unique<GameplayState>(
+        m_settings.window.width,
+        m_settings.window.height
+    );
     gameplay->InitEntities(*this);
     gameplay->InitSystems(*this);
     PushState(std::move(gameplay));
@@ -34,7 +43,7 @@ void Game::Run() {
 
         ProcessInput();
         Update(deltaTime);
-        Render();
+        Render(deltaTime);
     }
 }
 
@@ -57,10 +66,12 @@ void Game::Update(float deltaTime) {
     }
 }
 
-void Game::Render() {
+void Game::Render(float deltaTime) {
     if (!m_states.empty()) {
         m_states.back()->Render(*this);
     }
+    m_debugRenderer->DrawFPS(deltaTime);
+    SDL_RenderPresent(m_window->GetRenderer());
 }
 
 void Game::PushState(std::unique_ptr<GameState> state) {
@@ -80,24 +91,17 @@ void Game::PopState() {
     }
 }
 
-InputManager& Game::GetInput() {
-    return m_input;
-}
-
-TextureManager* Game::GetTextureManager() {
-    return m_textureManager.get();
-}
-
-SDL_Renderer* Game::GetRenderer() {
-    return m_window->GetRenderer();
-}
+InputManager&          Game::GetInput()          { return m_input; }
+TextureManager*        Game::GetTextureManager() { return m_textureManager.get(); }
+SDL_Renderer*          Game::GetRenderer()        { return m_window->GetRenderer(); }
+DebugRenderer&         Game::GetDebugRenderer()   { return *m_debugRenderer; }
+const SettingsManager& Game::GetSettings() const  { return m_settings; }
+i32 Game::GetWindowWidth()  const                 { return m_settings.window.width; }
+i32 Game::GetWindowHeight() const                 { return m_settings.window.height; }
 
 GameState* Game::GetStateBelow() {
     if (m_states.size() < 2) return nullptr;
     return m_states[m_states.size() - 2].get();
 }
-
-i32 Game::GetWindowWidth() const  { return m_width; }
-i32 Game::GetWindowHeight() const { return m_height; }
 
 } // namespace Core

@@ -19,6 +19,9 @@ void MovementSystem::Update(ECS::World& world, float deltaTime) {
 
         auto& transform = transforms.Get(entity);
 
+        transform.prevX = transform.x;
+        transform.prevY = transform.y;
+
         if (m_input.IsKeyDown(SDL_SCANCODE_W)) transform.y -= m_speed * deltaTime;
         if (m_input.IsKeyDown(SDL_SCANCODE_S)) transform.y += m_speed * deltaTime;
         if (m_input.IsKeyDown(SDL_SCANCODE_A)) transform.x -= m_speed * deltaTime;

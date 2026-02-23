@@ -15,7 +15,6 @@ void TilemapSystem::Update(ECS::World& world, float deltaTime) {
 
     f32 cameraX = 0.0f;
     f32 cameraY = 0.0f;
-
     for (auto& [entity, camera] : cameras.GetAll()) {
         cameraX = camera.x;
         cameraY = camera.y;
@@ -29,7 +28,6 @@ void TilemapSystem::Update(ECS::World& world, float deltaTime) {
         for (i32 row = 0; row < static_cast<i32>(tilemap.grid.size()); ++row) {
             for (i32 col = 0; col < static_cast<i32>(tilemap.grid[row].size()); ++col) {
                 const Components::Tile& tile = tilemap.grid[row][col];
-
                 if (tile.id < 0) continue;
 
                 i32 srcCol = tile.id % tilemap.tilesetColumns;

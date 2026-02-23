@@ -19,7 +19,6 @@ void RenderSystem::Update(ECS::World& world, float deltaTime) {
 
     f32 cameraX = 0.0f;
     f32 cameraY = 0.0f;
-
     for (auto& [entity, camera] : cameras.GetAll()) {
         cameraX = camera.x;
         cameraY = camera.y;
@@ -28,12 +27,11 @@ void RenderSystem::Update(ECS::World& world, float deltaTime) {
 
     for (auto& [entity, render] : renders.GetAll()) {
         if (!transforms.Has(entity)) continue;
-
         auto& transform = transforms.Get(entity);
 
         SDL_FRect dst {
-            transform.x - cameraX,
-            transform.y - cameraY,
+            transform.x - (render.width  / 2.0f) - cameraX,
+            transform.y - (render.height / 2.0f) - cameraY,
             static_cast<float>(render.width),
             static_cast<float>(render.height)
         };
@@ -45,26 +43,24 @@ void RenderSystem::Update(ECS::World& world, float deltaTime) {
     for (auto& [entity, sprite] : sprites.GetAll()) {
         if (!transforms.Has(entity)) continue;
         if (!sprite.texture)         continue;
-
         auto& transform = transforms.Get(entity);
 
-        SDL_FRect dst {
-            transform.x - cameraX,
-            transform.y - cameraY,
-            0.0f, 0.0f
-        };
-
-        if (sprite.srcRect) {
-            dst.w = sprite.srcRect->w;
-            dst.h = sprite.srcRect->h;
+        float w, h;
+        if (sprite.srcRect.has_value()) {
+            w = sprite.srcRect->w;
+            h = sprite.srcRect->h;
         } else {
-            float w, h;
             SDL_GetTextureSize(sprite.texture, &w, &h);
-            dst.w = w;
-            dst.h = h;
         }
 
-        SDL_RenderTexture(m_renderer, sprite.texture, sprite.srcRect, &dst);
+        SDL_FRect dst {
+            transform.x - (w / 2.0f) + sprite.offsetX - cameraX,
+            transform.y - (h / 2.0f) + sprite.offsetY - cameraY,
+            w, h
+        };
+
+        const SDL_FRect* src = sprite.srcRect.has_value() ? &sprite.srcRect.value() : nullptr;
+        SDL_RenderTexture(m_renderer, sprite.texture, src, &dst);
     }
 }
 
