@@ -9,9 +9,9 @@ void AnimationSystem::Update(ECS::World& world, float deltaTime) {
     auto& animations = world.GetStore<Components::AnimationComponent>();
     auto& sprites    = world.GetStore<Components::SpriteComponent>();
 
-    for (auto& [entity, anim] : animations.GetAll()) {
+    for (ECS::Entity entity : world.View<Components::AnimationComponent, Components::SpriteComponent>()) {
+        auto& anim = animations.Get(entity);
         if (anim.currentClip.empty())              continue;
-        if (!sprites.Has(entity))                  continue;
 
         auto it = anim.clips.find(anim.currentClip);
         if (it == anim.clips.end())                continue;

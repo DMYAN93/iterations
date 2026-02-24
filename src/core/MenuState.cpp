@@ -39,7 +39,7 @@ void MenuState::ProcessInput(Game& game) {
             auto gameplay = std::make_unique<GameplayState>(m_screenWidth, m_screenHeight);
             gameplay->InitEntities(game);
             gameplay->InitSystems(game);
-            game.PushState(std::move(gameplay));
+            game.RequestPushState(std::move(gameplay));
         } else if (m_items[m_selectedIndex] == "Quit") {
             game.Quit();
         }
@@ -49,7 +49,9 @@ void MenuState::ProcessInput(Game& game) {
 void MenuState::Update(Game& game, float deltaTime) {
 }
 
-void MenuState::Render(Game& game) {
+void MenuState::Render(Game& game, float interpolationAlpha) {
+    (void)interpolationAlpha;
+
     SDL_Renderer* renderer = game.GetRenderer();
     SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255);
     SDL_RenderClear(renderer);

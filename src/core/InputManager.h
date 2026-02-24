@@ -6,13 +6,13 @@
 namespace Core {
 
 // Tracks per-frame keyboard state.
-// Call BeginFrame() once at the top of each frame (before polling events),
+// Call BeginFrame() once per frame after SDL events are pumped for that frame,
 // then query with IsKeyDown / IsKeyJustPressed / IsKeyJustReleased anywhere.
 class InputManager {
 public:
     InputManager();
 
-    // Must be called once per frame, before SDL_PollEvent.
+    // Must be called once per frame after the event pump (SDL_PollEvent loop).
     void BeginFrame();
 
     // True every frame the key is physically held down.

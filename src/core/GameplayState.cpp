@@ -118,7 +118,7 @@ void GameplayState::InitSystems(Game& game) {
 
 void GameplayState::ProcessInput(Game& game) {
     if (game.GetInput().IsKeyJustPressed(SDL_SCANCODE_ESCAPE)) {
-        game.PushState(std::make_unique<PausedState>());
+        game.RequestPushState(std::make_unique<PausedState>());
     }
 }
 
@@ -126,15 +126,17 @@ void GameplayState::Update(Game& game, float deltaTime) {
     m_world.UpdateSystems(deltaTime);
 }
 
-void GameplayState::DrawScene(Game& game) {
+void GameplayState::DrawScene(Game& game, float interpolationAlpha) {
+    (void)interpolationAlpha;
+
     SDL_Renderer* renderer = game.GetRenderer();
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderClear(renderer);
     m_world.RenderSystems(0.0f);
 }
 
-void GameplayState::Render(Game& game) {
-    DrawScene(game);
+void GameplayState::Render(Game& game, float interpolationAlpha) {
+    DrawScene(game, interpolationAlpha);
 }
 
 } // namespace Core

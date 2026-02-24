@@ -19,8 +19,9 @@ public:
 
     void Run();
 
-    void PushState(std::unique_ptr<GameState> state);
-    void PopState();
+    void RequestPushState(std::unique_ptr<GameState> state);
+    void RequestPopState();
+    void RequestReplaceState(std::unique_ptr<GameState> state);
     void Quit();
 
     InputManager&          GetInput();
@@ -33,9 +34,22 @@ public:
     i32                    GetWindowHeight() const;
 
 private:
+    enum class StateCommandType {
+        Push,
+        Pop,
+        Replace
+    };
+
+    struct StateCommand {
+        StateCommandType              type;
+        std::unique_ptr<GameState> pendingState;
+    };
+
+    void PumpEvents();
     void ProcessInput();
     void Update(float deltaTime);
-    void Render(float deltaTime);
+    void Render(float interpolationAlpha, float frameDeltaTime);
+    void ApplyPendingStateCommands();
 
     // Declaration order is load-bearing:
     // m_settings first — no dependencies.
@@ -49,6 +63,7 @@ private:
     std::unique_ptr<DebugRenderer>          m_debugRenderer;
     InputManager                            m_input;
     std::vector<std::unique_ptr<GameState>> m_states;
+    std::vector<StateCommand>               m_pendingStateCommands;
     bool                                    m_running = false;
 };
 

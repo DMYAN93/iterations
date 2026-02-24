@@ -35,6 +35,14 @@ struct GameplaySettings {
     float playerSpeed = 200.0f;
 };
 
+// -- Simulation ----------------------------------------------------------
+
+struct SimulationSettings {
+    int   tickRateHz          = 60;
+    int   maxSubstepsPerFrame = 5;
+    float maxFrameDelta       = 0.25f;
+};
+
 // -- Audio ----------------------------------------------------------------
 
 struct AudioSettings {
@@ -78,6 +86,7 @@ class SettingsManager {
 public:
     WindowSettings   window;
     GameplaySettings gameplay;
+    SimulationSettings simulation;
     AudioSettings    audio;
     GraphicsSettings graphics;
     DebugSettings    debug;

@@ -37,6 +37,14 @@ bool SettingsManager::Load(const std::string& path) {
         gameplay.playerSpeed = g.value("playerSpeed", gameplay.playerSpeed);
     }
 
+    // Simulation
+    if (j.contains("simulation")) {
+        auto& simulationJson = j["simulation"];
+        simulation.tickRateHz = simulationJson.value("tickRateHz", simulation.tickRateHz);
+        simulation.maxSubstepsPerFrame = simulationJson.value("maxSubstepsPerFrame", simulation.maxSubstepsPerFrame);
+        simulation.maxFrameDelta = simulationJson.value("maxFrameDelta", simulation.maxFrameDelta);
+    }
+
     // Audio
     if (j.contains("audio")) {
         auto& a          = j["audio"];
@@ -99,6 +107,12 @@ bool SettingsManager::Save(const std::string& path) const {
 
     j["gameplay"] = {
         {"playerSpeed", gameplay.playerSpeed}
+    };
+
+    j["simulation"] = {
+        {"tickRateHz",          simulation.tickRateHz},
+        {"maxSubstepsPerFrame", simulation.maxSubstepsPerFrame},
+        {"maxFrameDelta",       simulation.maxFrameDelta}
     };
 
     j["audio"] = {

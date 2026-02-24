@@ -12,8 +12,9 @@ InputManager::InputManager() {
 }
 
 void InputManager::BeginFrame() {
-    // Pump SDL's internal state (SDL_PollEvent must still be called separately
-    // to dispatch window/quit events, but this keeps the key array up to date).
+    // Snapshot SDL's internal key array for the current frame.
+    // Game pumps SDL events first, then calls BeginFrame to capture the
+    // post-pump keyboard state used by just-pressed/released queries.
     m_previous = m_current;
     const u8* state = reinterpret_cast<const u8*>(SDL_GetKeyboardState(nullptr));
     m_current.assign(state, state + m_keyCount);

@@ -1,6 +1,7 @@
 #include "core/DebugRenderer.h"
 #include <SDL3/SDL.h>
 #include <numeric>
+#include <utility>
 
 namespace Core {
 
@@ -45,6 +46,14 @@ DebugRenderer::DebugRenderer(SDL_Renderer* renderer, const SettingsManager& sett
 }
 
 DebugRenderer::~DebugRenderer() {
+    for (auto& [cacheKey, cachedText] : m_textCache) {
+        (void)cacheKey;
+        if (cachedText.texture) {
+            SDL_DestroyTexture(cachedText.texture);
+        }
+    }
+    m_textCache.clear();
+
     if (m_font) TTF_CloseFont(m_font);
     TTF_Quit();
 }
@@ -56,19 +65,50 @@ bool DebugRenderer::IsValid() const {
 void DebugRenderer::DrawText(float x, float y, const std::string& text, SDL_Color color) {
     if (!m_valid) return;
 
-    SDL_Surface* surface = TTF_RenderText_Blended(m_font, text.c_str(), 0, color);
-    if (!surface) return;
+    const u32 colorKey = (static_cast<u32>(color.r) << 24)
+                       | (static_cast<u32>(color.g) << 16)
+                       | (static_cast<u32>(color.b) << 8)
+                       | static_cast<u32>(color.a);
+    TextCacheKey key {text, colorKey};
 
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(m_renderer, surface);
-    SDL_DestroySurface(surface);
-    if (!texture) return;
+    auto cacheEntry = m_textCache.find(key);
+    if (cacheEntry == m_textCache.end()) {
+        SDL_Surface* surface = TTF_RenderText_Blended(m_font, text.c_str(), 0, color);
+        if (!surface) return;
 
-    float width, height;
-    SDL_GetTextureSize(texture, &width, &height);
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(m_renderer, surface);
+        SDL_DestroySurface(surface);
+        if (!texture) return;
 
-    SDL_FRect dst { x, y, width, height };
-    SDL_RenderTexture(m_renderer, texture, nullptr, &dst);
-    SDL_DestroyTexture(texture);
+        float width = 0.0f;
+        float height = 0.0f;
+        SDL_GetTextureSize(texture, &width, &height);
+
+        if (m_textCache.size() >= k_maxCachedTextEntries) {
+            for (auto& [cachedKey, cachedText] : m_textCache) {
+                (void)cachedKey;
+                if (cachedText.texture) {
+                    SDL_DestroyTexture(cachedText.texture);
+                }
+            }
+            m_textCache.clear();
+        }
+
+        auto [inserted, wasInserted] = m_textCache.emplace(
+            std::move(key),
+            CachedTextTexture {texture, width, height}
+        );
+        if (!wasInserted) {
+            SDL_DestroyTexture(texture);
+            return;
+        }
+
+        cacheEntry = inserted;
+    }
+
+    const CachedTextTexture& cachedText = cacheEntry->second;
+    SDL_FRect dst { x, y, cachedText.width, cachedText.height };
+    SDL_RenderTexture(m_renderer, cachedText.texture, nullptr, &dst);
 }
 
 void DebugRenderer::DrawFPS(float deltaTime) {
