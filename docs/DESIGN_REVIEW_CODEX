@@ -38,7 +38,7 @@ Recommendation: optional next step is stride/LOD toggle for very large maps.
 Priority: Resolved
 
 ### Finding 6: Debug text path allocates texture every draw
-Status: Fixed locally on branch `codex` (pending commit hash).
+Status: Fixed on branch `codex` in commit `b2e41dd`.
 Impact: `DebugRenderer::DrawText` now reuses cached textures per `text + color` key with bounded cache size.
 Recommendation: if UI text volume grows beyond debug use-cases, move to dedicated atlas/glyph caching.
 Priority: Resolved
@@ -122,4 +122,5 @@ Priority: Medium-High
 - Deferred state transitions were addressed in `26aa2b5`.
 - ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
 - Debug tile overlay culling was addressed in `810bdc4`.
+- Debug text texture caching was addressed in `b2e41dd`.
 - This update adds an explicit ECS architecture review and a target-design migration plan.
