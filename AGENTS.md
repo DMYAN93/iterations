@@ -31,6 +31,47 @@ Hard stop:
   - the blocking error
   - the next command you would run in a working environment
 
+## Git safety rules (HARD STOP — enforceable)
+Goal: AI agents must not modify `main` (locally or on the remote) unless I explicitly instruct them to do so.
+
+### Absolute prohibitions (unless I explicitly request it)
+Agents MUST NOT:
+- Push to `origin/main` (including `git push origin main`, `git push`, or any push while checked out on `main`).
+- Merge anything into `main` (GitHub “Merge” button, `git merge` into `main`, “rebase and merge”, squash merge, etc.).
+- Rebase or rewrite `main` history (`git rebase` while on `main`, `git reset --hard` affecting `main`, `git push --force` of any branch, especially `main`).
+- Change repo settings (branch protection, default branch, Actions settings, permissions).
+- Delete remote branches (`git push origin --delete ...`) unless explicitly requested.
+
+### Required pre-flight checks before any git command that can change state
+Before running any git command other than pure read-only commands, the agent MUST:
+1) Print the current branch and status:
+   - `git branch --show-current`
+   - `git status --porcelain -b`
+2) If the current branch is `main`, HARD STOP and ask for instructions.
+
+### Allowed read-only git commands (always allowed)
+- `git status`, `git diff`, `git log`, `git show`, `git branch`, `git remote -v`, `git fetch`  
+(These do not change `main`.)
+
+### Allowed write actions (only on non-main branches)
+Agents MAY:
+- Create branches (e.g., `codex/*`, `claude/*`, `fix-*`) and commit there.
+- Push non-main branches (e.g., `git push -u origin fix-*`), provided:
+  - they are NOT currently on `main`, and
+  - they show the pre-flight check output first.
+- Open PRs targeting `main` for my review, but MUST NOT merge them.
+
+### “Merge permission” protocol (explicit approval requirement)
+If the agent believes changes should be merged to `main`, it MUST:
+1) Stop and summarize exactly what would be merged (branch name + commit list).
+2) Ask for approval with a single yes/no question.
+3) Proceed ONLY if I reply with the exact phrase: **"APPROVED: MERGE TO MAIN"**.
+
+If that exact phrase is not present, the agent must treat it as NOT approved.
+
+### Safety default
+When unsure, default to: create a new branch, commit there, push that branch, and open a PR for review.
+
 ## Dependency/build contract (important)
 - Dependencies are defined by `vcpkg.json` (manifest).
 - CMake uses `find_package(<dep> CONFIG REQUIRED)`; therefore the build must be configured in an environment
