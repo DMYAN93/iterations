@@ -110,6 +110,10 @@ void Game::Render(float interpolationAlpha, float frameDeltaTime) {
 }
 
 void Game::RequestPushState(std::unique_ptr<GameState> state) {
+    if (!state) {
+        SDL_Log("Game::RequestPushState called with null state; command ignored.");
+        return;
+    }
     m_pendingStateCommands.push_back({StateCommandType::Push, std::move(state)});
 }
 
@@ -118,6 +122,10 @@ void Game::RequestPopState() {
 }
 
 void Game::RequestReplaceState(std::unique_ptr<GameState> state) {
+    if (!state) {
+        SDL_Log("Game::RequestReplaceState called with null state; command ignored.");
+        return;
+    }
     m_pendingStateCommands.push_back({StateCommandType::Replace, std::move(state)});
 }
 
@@ -131,6 +139,10 @@ void Game::ApplyPendingStateCommands() {
             case StateCommandType::Push: {
                 if (!m_states.empty()) {
                     m_states.back()->OnExit();
+                }
+                if (!command.pendingState) {
+                    SDL_Log("Game::ApplyPendingStateCommands encountered null push state; command ignored.");
+                    break;
                 }
                 m_states.push_back(std::move(command.pendingState));
                 if (!m_states.empty()) {
@@ -153,6 +165,10 @@ void Game::ApplyPendingStateCommands() {
                 if (!m_states.empty()) {
                     m_states.back()->OnExit();
                     m_states.pop_back();
+                }
+                if (!command.pendingState) {
+                    SDL_Log("Game::ApplyPendingStateCommands encountered null replace state; command ignored.");
+                    break;
                 }
                 m_states.push_back(std::move(command.pendingState));
                 if (!m_states.empty()) {

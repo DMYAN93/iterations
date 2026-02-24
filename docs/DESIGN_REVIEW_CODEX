@@ -125,3 +125,29 @@ Priority: Medium-High
 - Debug text texture caching was addressed in `b2e41dd`.
 - Camera/player singleton validation was added in `1b93347`.
 - This update adds an explicit ECS architecture review and a target-design migration plan.
+
+## Potential Bug Review (2026-02-24 Sweep)
+
+### Bug P1: Null state can be queued and dereferenced during state command application
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: null push/replace requests are now rejected, and queued null states are guarded during command application.
+Recommendation: keep this guard path even if current callers never pass null; it prevents future crash regressions.
+Priority: Resolved
+
+### Bug P2: Collision tile coordinate math is wrong for negative positions
+Evidence: `CollisionSystem::OverlapsNonWalkable` uses `static_cast<i32>(x / tileWidth)` and similar for `y` (`src/systems/CollisionSystem.cpp:13-16`), which truncates toward zero.
+Risk: entities slightly outside map on negative coordinates can be classified into tile 0 instead of -1, causing inconsistent collision/out-of-bounds handling.
+Recommendation: use floor division for world-to-tile conversion for both min/max bounds.
+Priority: Medium-High
+
+### Bug P3: Tilemap indexing assumes rectangular rows but debug/collision index math does not enforce it
+Evidence: collision uses `mapCols = tilemap.grid[0].size()` for all rows (`src/systems/CollisionSystem.cpp:19`, `src/systems/CollisionSystem.cpp:24`), while debug walkability uses `tilemap.grid[row].size()` per row (`src/systems/DebugRendererSystem.cpp:136`).
+Risk: malformed or ragged tilemap rows produce mismatched blocked-tile indices and potential out-of-bounds behavior.
+Recommendation: validate rectangular maps at load time and store a canonical `columnCount`; fail fast on malformed map data.
+Priority: Medium
+
+### Bug P4: InputManager API contract comments contradict runtime usage
+Evidence: `InputManager` header says `BeginFrame()` must run before `SDL_PollEvent` (`src/core/InputManager.h:9-16`), but `Game::Run()` currently calls `PumpEvents()` first, then `BeginFrame()` (`src/core/Game.cpp:52-54`).
+Risk: future maintenance regression where someone "fixes" call order to match the comment and reintroduces one-frame-late input.
+Recommendation: update comments to match the correct current ordering (events pumped first, snapshot second).
+Priority: Medium
