@@ -32,16 +32,16 @@ Priority: Resolved
 ## Role: Rendering/Performance Engineer
 
 ### Finding 5: Debug tile overlay draws per-tile every frame with no culling
-Status: Fixed locally on branch `codex` (pending commit hash).
+Status: Fixed on branch `codex` in commit `810bdc4`.
 Impact: tile grid/walkability debug overlays are now camera-culled to visible tile bounds.
 Recommendation: optional next step is stride/LOD toggle for very large maps.
 Priority: Resolved
 
 ### Finding 6: Debug text path allocates texture every draw
-Evidence: `DebugRenderer::DrawText` creates/destroys a surface and texture each call.
-Risk: avoidable CPU/GPU overhead if debug text volume grows.
-Recommendation: Cache glyph/text textures per string+style, invalidate on change.
-Priority: Medium
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: `DebugRenderer::DrawText` now reuses cached textures per `text + color` key with bounded cache size.
+Recommendation: if UI text volume grows beyond debug use-cases, move to dedicated atlas/glyph caching.
+Priority: Resolved
 
 ## Role: Reliability/QA
 
@@ -111,9 +111,9 @@ Priority: Medium-High
 1. Make ECS reads non-mutating and replace allocating `View` with zero-allocation iterables (High).
 2. Reduce `Game` service-locator coupling via explicit services interface/dependency injection (High).
 3. Move hot ECS component stores to dense/sparse-set layout (High).
-4. Improve debug rendering scalability with camera culling (Medium-High).
-5. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
-6. Add debug-text texture caching for repeated strings in `DebugRenderer::DrawText` (Medium).
+4. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
+5. Add entity generation/version validation for safer lifecycle handling (Medium-High).
+6. Add ECS command-buffered structural mutations for deterministic updates (Medium-High).
 
 ## Notes
 - Several items are already recognized in `docs/DESIGN_REVIEW.md`; this review confirms and reprioritizes them against near-term architectural risk.
@@ -121,4 +121,5 @@ Priority: Medium-High
 - Fixed-step simulation was addressed in `97453a2`.
 - Deferred state transitions were addressed in `26aa2b5`.
 - ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
+- Debug tile overlay culling was addressed in `810bdc4`.
 - This update adds an explicit ECS architecture review and a target-design migration plan.

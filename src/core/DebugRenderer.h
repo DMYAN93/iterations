@@ -1,9 +1,11 @@
 #pragma once
 #include "core/SettingsManager.h"
+#include "core/Types.h"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <string>
 #include <deque>
+#include <unordered_map>
 
 namespace Core {
 
@@ -26,13 +28,36 @@ public:
     void DrawFilledRect(float x, float y, float w, float h, SDL_Color color = {255, 0, 0, 80});
 
 private:
+    struct TextCacheKey {
+        std::string text;
+        u32 colorKey = 0;
+
+        bool operator==(const TextCacheKey& other) const {
+            return text == other.text && colorKey == other.colorKey;
+        }
+    };
+
+    struct TextCacheKeyHash {
+        std::size_t operator()(const TextCacheKey& key) const {
+            return std::hash<std::string>{}(key.text) ^ (static_cast<std::size_t>(key.colorKey) << 1);
+        }
+    };
+
+    struct CachedTextTexture {
+        SDL_Texture* texture = nullptr;
+        float width = 0.0f;
+        float height = 0.0f;
+    };
+
     SDL_Renderer*          m_renderer;
     const SettingsManager& m_settings;
     TTF_Font*              m_font  = nullptr;
     bool                   m_valid = false;
 
     static constexpr int   k_fpsSampleCount = 30;
+    static constexpr std::size_t k_maxCachedTextEntries = 256;
     std::deque<float>      m_fpsSamples;
+    std::unordered_map<TextCacheKey, CachedTextTexture, TextCacheKeyHash> m_textCache;
 };
 
 } // namespace Core
