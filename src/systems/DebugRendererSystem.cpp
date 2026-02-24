@@ -15,6 +15,7 @@ DebugRenderSystem::DebugRenderSystem(SDL_Renderer* renderer, Core::DebugRenderer
 }
 
 void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
+    (void)deltaTime;
     auto& transforms = world.GetStore<Components::TransformComponent>();
     auto& cameras    = world.GetStore<Components::CameraComponent>();
 
@@ -23,14 +24,19 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
     i32 cameraViewportWidth = 0;
     i32 cameraViewportHeight = 0;
     bool hasActiveCamera = false;
-    for (auto& [entity, camera] : cameras.GetAll()) {
-        (void)entity;
+    const auto cameraEntities = world.View<Components::CameraComponent>();
+    static bool loggedCameraCountIssue = false;
+    if (cameraEntities.size() == 1) {
+        const auto& camera = cameras.Get(cameraEntities.front());
         cameraX = camera.x;
         cameraY = camera.y;
         cameraViewportWidth = camera.viewportWidth;
         cameraViewportHeight = camera.viewportHeight;
         hasActiveCamera = true;
-        break;
+        loggedCameraCountIssue = false;
+    } else if (!loggedCameraCountIssue) {
+        SDL_Log("DebugRenderSystem: expected exactly 1 camera, found %zu. Using world-origin fallback camera.", cameraEntities.size());
+        loggedCameraCountIssue = true;
     }
 
     // Collision hitboxes

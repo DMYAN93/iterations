@@ -12,16 +12,23 @@ RenderSystem::RenderSystem(SDL_Renderer* renderer)
 }
 
 void RenderSystem::Update(ECS::World& world, float deltaTime) {
+    (void)deltaTime;
     auto& renders    = world.GetStore<Components::RenderComponent>();
     auto& sprites    = world.GetStore<Components::SpriteComponent>();
     auto& cameras    = world.GetStore<Components::CameraComponent>();
 
     f32 cameraX = 0.0f;
     f32 cameraY = 0.0f;
-    for (auto& [entity, camera] : cameras.GetAll()) {
+    const auto cameraEntities = world.View<Components::CameraComponent>();
+    static bool loggedCameraCountIssue = false;
+    if (cameraEntities.size() == 1) {
+        const auto& camera = cameras.Get(cameraEntities.front());
         cameraX = camera.x;
         cameraY = camera.y;
-        break;
+        loggedCameraCountIssue = false;
+    } else if (!loggedCameraCountIssue) {
+        SDL_Log("RenderSystem: expected exactly 1 camera, found %zu. Using world-origin fallback camera.", cameraEntities.size());
+        loggedCameraCountIssue = true;
     }
 
     for (ECS::Entity entity : world.View<Components::RenderComponent, Components::TransformComponent>()) {

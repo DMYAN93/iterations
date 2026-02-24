@@ -51,10 +51,10 @@ Impact: simulation now runs on a fixed-step accumulator path while render remain
 Priority: Resolved
 
 ### Finding 8: Singleton-by-convention camera/player usage
-Evidence: camera/player logic frequently takes first entry and `break`s.
-Risk: nondeterministic behavior if extra matching entities appear.
-Recommendation: enforce singleton with validation or redesign to explicit active-entity selection.
-Priority: Medium-High
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: camera/player singleton expectations are now explicitly validated; systems no longer rely on implicit `first + break` behavior.
+Recommendation: long-term, move singleton ownership to explicit singleton APIs in ECS.
+Priority: Resolved
 
 ## Explicit ECS Review (Deep Dive)
 
@@ -111,9 +111,9 @@ Priority: Medium-High
 1. Make ECS reads non-mutating and replace allocating `View` with zero-allocation iterables (High).
 2. Reduce `Game` service-locator coupling via explicit services interface/dependency injection (High).
 3. Move hot ECS component stores to dense/sparse-set layout (High).
-4. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
-5. Add entity generation/version validation for safer lifecycle handling (Medium-High).
-6. Add ECS command-buffered structural mutations for deterministic updates (Medium-High).
+4. Add entity generation/version validation for safer lifecycle handling (Medium-High).
+5. Add ECS command-buffered structural mutations for deterministic updates (Medium-High).
+6. Add debug overlay stride/LOD toggle for very large tilemaps (Medium).
 
 ## Notes
 - Several items are already recognized in `docs/DESIGN_REVIEW.md`; this review confirms and reprioritizes them against near-term architectural risk.
@@ -123,4 +123,5 @@ Priority: Medium-High
 - ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
 - Debug tile overlay culling was addressed in `810bdc4`.
 - Debug text texture caching was addressed in `b2e41dd`.
+- Camera/player singleton validation was added in `<pending-commit>`.
 - This update adds an explicit ECS architecture review and a target-design migration plan.
