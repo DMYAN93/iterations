@@ -3,6 +3,7 @@
 #include "components/TransformComponent.h"
 #include "components/CollisionComponent.h"
 #include "components/TilemapComponent.h"
+#include <SDL3/SDL.h>
 #include <cmath>
 
 namespace Systems {
@@ -39,15 +40,31 @@ bool CollisionSystem::OverlapsNonWalkable(
 }
 
 void CollisionSystem::Update(ECS::World& world, float deltaTime) {
+    (void)deltaTime;
     auto& collisions = world.GetStore<Components::CollisionComponent>();
     auto& tilemaps   = world.GetStore<Components::TilemapComponent>();
 
     Components::TilemapComponent* tilemap = nullptr;
     for (auto& [entity, tm] : tilemaps.GetAll()) {
+        (void)entity;
         tilemap = &tm;
         break;
     }
     if (!tilemap) return;
+    if (tilemap->grid.empty() || tilemap->grid[0].empty()) return;
+
+    const i32 mapCols = static_cast<i32>(tilemap->grid[0].size());
+    static bool loggedRaggedRowsIssue = false;
+    for (const auto& row : tilemap->grid) {
+        if (static_cast<i32>(row.size()) != mapCols) {
+            if (!loggedRaggedRowsIssue) {
+                SDL_Log("CollisionSystem: tilemap has ragged rows; collision skipped.");
+                loggedRaggedRowsIssue = true;
+            }
+            return;
+        }
+    }
+    loggedRaggedRowsIssue = false;
 
     for (ECS::Entity entity : world.View<Components::CollisionComponent, Components::TransformComponent>()) {
         auto& collision = collisions.Get(entity);

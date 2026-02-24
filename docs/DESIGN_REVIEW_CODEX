@@ -141,10 +141,10 @@ Recommendation: keep floor conversion centralized in one helper to avoid future 
 Priority: Resolved
 
 ### Bug P3: Tilemap indexing assumes rectangular rows but debug/collision index math does not enforce it
-Evidence: collision uses `mapCols = tilemap.grid[0].size()` for all rows (`src/systems/CollisionSystem.cpp:19`, `src/systems/CollisionSystem.cpp:24`), while debug walkability uses `tilemap.grid[row].size()` per row (`src/systems/DebugRendererSystem.cpp:136`).
-Risk: malformed or ragged tilemap rows produce mismatched blocked-tile indices and potential out-of-bounds behavior.
-Recommendation: validate rectangular maps at load time and store a canonical `columnCount`; fail fast on malformed map data.
-Priority: Medium
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: collision/debug systems now validate rectangular tilemap rows and use canonical column-count index math for blocked-tile lookups.
+Recommendation: additionally validate and reject ragged rows in `TilemapLoader` as defense-in-depth.
+Priority: Resolved
 
 ### Bug P4: InputManager API contract comments contradict runtime usage
 Evidence: `InputManager` header says `BeginFrame()` must run before `SDL_PollEvent` (`src/core/InputManager.h:9-16`), but `Game::Run()` currently calls `PumpEvents()` first, then `BeginFrame()` (`src/core/Game.cpp:52-54`).

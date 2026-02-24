@@ -94,6 +94,22 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
 
             const i32 columnCount = static_cast<i32>(tilemap.grid[0].size());
             if (columnCount <= 0) continue;
+            bool hasRaggedRows = false;
+            for (const auto& rowData : tilemap.grid) {
+                if (static_cast<i32>(rowData.size()) != columnCount) {
+                    hasRaggedRows = true;
+                    break;
+                }
+            }
+            static bool loggedRaggedRowsIssue = false;
+            if (hasRaggedRows) {
+                if (!loggedRaggedRowsIssue) {
+                    SDL_Log("DebugRenderSystem: tilemap has ragged rows; tile debug overlays skipped.");
+                    loggedRaggedRowsIssue = true;
+                }
+                continue;
+            }
+            loggedRaggedRowsIssue = false;
 
             i32 minVisibleCol = 0;
             i32 maxVisibleCol = columnCount - 1;
@@ -133,7 +149,7 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
                     };
 
                     if (m_settings.IsDebugEnabled(m_settings.debug.showWalkability)) {
-                        int index = row * static_cast<i32>(tilemap.grid[row].size()) + col;
+                        int index = row * columnCount + col;
                         if (tilemap.blockedTiles.count(index)) {
                             m_debugRenderer.DrawFilledRect(dst.x, dst.y, dst.w, dst.h, {255, 0, 0, 80});
                         }
