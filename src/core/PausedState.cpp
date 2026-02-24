@@ -14,7 +14,7 @@ void PausedState::OnExit() {
 
 void PausedState::ProcessInput(Game& game) {
     if (game.GetInput().IsKeyJustPressed(SDL_SCANCODE_ESCAPE)) {
-        game.PopState();
+        game.RequestPopState();
     }
 }
 

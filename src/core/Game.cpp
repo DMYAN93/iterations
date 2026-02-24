@@ -27,7 +27,8 @@ Game::Game(SettingsManager settings)
         m_settings.window.width,
         m_settings.window.height
     );
-    PushState(std::move(menu));
+    RequestPushState(std::move(menu));
+    ApplyPendingStateCommands();
 
     m_running = true;
 }
@@ -51,20 +52,31 @@ void Game::Run() {
         PumpEvents();
         m_input.BeginFrame();
         ProcessInput();
+        ApplyPendingStateCommands();
 
         int substepsProcessed = 0;
         while (accumulator >= fixedDeltaTime && substepsProcessed < maxSubstepsPerFrame) {
             Update(fixedDeltaTime);
             accumulator -= fixedDeltaTime;
             ++substepsProcessed;
+            ApplyPendingStateCommands();
+
+            if (!m_running || m_states.empty()) {
+                break;
+            }
         }
 
         if (substepsProcessed == maxSubstepsPerFrame && accumulator >= fixedDeltaTime) {
             accumulator = 0.0f;
         }
 
+        if (!m_running || m_states.empty()) {
+            break;
+        }
+
         const float interpolationAlpha = accumulator / fixedDeltaTime;
         Render(interpolationAlpha, frameDeltaTime);
+        ApplyPendingStateCommands();
     }
 }
 
@@ -97,25 +109,61 @@ void Game::Render(float interpolationAlpha, float frameDeltaTime) {
     SDL_RenderPresent(m_window->GetRenderer());
 }
 
-void Game::PushState(std::unique_ptr<GameState> state) {
-    if (!m_states.empty()) {
-        m_states.back()->OnExit();
-    }
-    m_states.push_back(std::move(state));
-    m_states.back()->OnEnter();
+void Game::RequestPushState(std::unique_ptr<GameState> state) {
+    m_pendingStateCommands.push_back({StateCommandType::Push, std::move(state)});
 }
 
-void Game::PopState() {
-    if (m_states.empty()) return;
-    m_states.back()->OnExit();
-    m_states.pop_back();
-    if (!m_states.empty()) {
-        m_states.back()->OnEnter();
-    }
+void Game::RequestPopState() {
+    m_pendingStateCommands.push_back({StateCommandType::Pop, nullptr});
+}
+
+void Game::RequestReplaceState(std::unique_ptr<GameState> state) {
+    m_pendingStateCommands.push_back({StateCommandType::Replace, std::move(state)});
 }
 
 void Game::Quit() {
     m_running = false;
+}
+
+void Game::ApplyPendingStateCommands() {
+    for (StateCommand& command : m_pendingStateCommands) {
+        switch (command.type) {
+            case StateCommandType::Push: {
+                if (!m_states.empty()) {
+                    m_states.back()->OnExit();
+                }
+                m_states.push_back(std::move(command.pendingState));
+                if (!m_states.empty()) {
+                    m_states.back()->OnEnter();
+                }
+                break;
+            }
+            case StateCommandType::Pop: {
+                if (m_states.empty()) {
+                    break;
+                }
+                m_states.back()->OnExit();
+                m_states.pop_back();
+                if (!m_states.empty()) {
+                    m_states.back()->OnEnter();
+                }
+                break;
+            }
+            case StateCommandType::Replace: {
+                if (!m_states.empty()) {
+                    m_states.back()->OnExit();
+                    m_states.pop_back();
+                }
+                m_states.push_back(std::move(command.pendingState));
+                if (!m_states.empty()) {
+                    m_states.back()->OnEnter();
+                }
+                break;
+            }
+        }
+    }
+
+    m_pendingStateCommands.clear();
 }
 
 InputManager&          Game::GetInput()          { return m_input; }

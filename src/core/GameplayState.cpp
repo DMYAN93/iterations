@@ -118,7 +118,7 @@ void GameplayState::InitSystems(Game& game) {
 
 void GameplayState::ProcessInput(Game& game) {
     if (game.GetInput().IsKeyJustPressed(SDL_SCANCODE_ESCAPE)) {
-        game.PushState(std::make_unique<PausedState>());
+        game.RequestPushState(std::make_unique<PausedState>());
     }
 }
 

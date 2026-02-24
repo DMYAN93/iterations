@@ -39,7 +39,7 @@ void MenuState::ProcessInput(Game& game) {
             auto gameplay = std::make_unique<GameplayState>(m_screenWidth, m_screenHeight);
             gameplay->InitEntities(game);
             gameplay->InitSystems(game);
-            game.PushState(std::move(gameplay));
+            game.RequestPushState(std::move(gameplay));
         } else if (m_items[m_selectedIndex] == "Quit") {
             game.Quit();
         }
