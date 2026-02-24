@@ -147,7 +147,7 @@ Recommendation: additionally validate and reject ragged rows in `TilemapLoader` 
 Priority: Resolved
 
 ### Bug P4: InputManager API contract comments contradict runtime usage
-Evidence: `InputManager` header says `BeginFrame()` must run before `SDL_PollEvent` (`src/core/InputManager.h:9-16`), but `Game::Run()` currently calls `PumpEvents()` first, then `BeginFrame()` (`src/core/Game.cpp:52-54`).
-Risk: future maintenance regression where someone "fixes" call order to match the comment and reintroduces one-frame-late input.
-Recommendation: update comments to match the correct current ordering (events pumped first, snapshot second).
-Priority: Medium
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: `InputManager` header/implementation comments now match real runtime ordering and no longer encourage regressive reorder.
+Recommendation: keep call-order contract documented in both `Game::Run` and `InputManager` docs.
+Priority: Resolved
