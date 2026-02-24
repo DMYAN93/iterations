@@ -3,17 +3,26 @@
 #include "components/TransformComponent.h"
 #include "components/CollisionComponent.h"
 #include "components/TilemapComponent.h"
+#include <cmath>
 
 namespace Systems {
+
+namespace {
+
+inline i32 WorldToTileFloor(float coordinate, i32 tileSize) {
+    return static_cast<i32>(std::floor(coordinate / static_cast<float>(tileSize)));
+}
+
+} // namespace
 
 bool CollisionSystem::OverlapsNonWalkable(
     float x, float y, float width, float height,
     const Components::TilemapComponent& tilemap) const {
 
-    i32 left   = static_cast<i32>(x               / tilemap.tileWidth);
-    i32 right  = static_cast<i32>((x + width - 1) / tilemap.tileWidth);
-    i32 top    = static_cast<i32>(y               / tilemap.tileHeight);
-    i32 bottom = static_cast<i32>((y + height - 1) / tilemap.tileHeight);
+    i32 left   = WorldToTileFloor(x, tilemap.tileWidth);
+    i32 right  = WorldToTileFloor(x + width - 1.0f, tilemap.tileWidth);
+    i32 top    = WorldToTileFloor(y, tilemap.tileHeight);
+    i32 bottom = WorldToTileFloor(y + height - 1.0f, tilemap.tileHeight);
 
     i32 mapRows = static_cast<i32>(tilemap.grid.size());
     i32 mapCols = mapRows > 0 ? static_cast<i32>(tilemap.grid[0].size()) : 0;
