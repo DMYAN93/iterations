@@ -45,9 +45,15 @@ struct AudioSettings {
 
 // -- Graphics -------------------------------------------------------------
 
+enum class ScreenMode {
+    Windowed,
+    Borderless,
+    Fullscreen
+};
+
 struct GraphicsSettings {
-    bool vsync    = true;
-    bool fullscreen = false;
+    bool       vsync      = true;
+    ScreenMode screenMode = ScreenMode::Windowed;
 };
 
 // -- Keybindings ----------------------------------------------------------

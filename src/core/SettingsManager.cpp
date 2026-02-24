@@ -47,9 +47,13 @@ bool SettingsManager::Load(const std::string& path) {
 
     // Graphics
     if (j.contains("graphics")) {
-        auto& g          = j["graphics"];
-        graphics.vsync      = g.value("vsync",      graphics.vsync);
-        graphics.fullscreen = g.value("fullscreen",  graphics.fullscreen);
+        auto& g        = j["graphics"];
+        graphics.vsync = g.value("vsync", graphics.vsync);
+
+        std::string mode = g.value("screenMode", "windowed");
+        if      (mode == "borderless") graphics.screenMode = ScreenMode::Borderless;
+        else if (mode == "fullscreen") graphics.screenMode = ScreenMode::Fullscreen;
+        else                           graphics.screenMode = ScreenMode::Windowed;
     }
 
     // Debug
@@ -103,9 +107,16 @@ bool SettingsManager::Save(const std::string& path) const {
         {"sfxVolume",    audio.sfxVolume}
     };
 
+    std::string screenModeStr;
+    switch (graphics.screenMode) {
+        case ScreenMode::Borderless: screenModeStr = "borderless"; break;
+        case ScreenMode::Fullscreen: screenModeStr = "fullscreen"; break;
+        default:                     screenModeStr = "windowed";   break;
+    }
+
     j["graphics"] = {
         {"vsync",      graphics.vsync},
-        {"fullscreen", graphics.fullscreen}
+        {"screenMode", screenModeStr}
     };
 
     std::string modeStr;

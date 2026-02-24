@@ -21,6 +21,7 @@ public:
 
     void PushState(std::unique_ptr<GameState> state);
     void PopState();
+    void Quit();
 
     InputManager&          GetInput();
     TextureManager*        GetTextureManager();

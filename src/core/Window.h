@@ -1,13 +1,14 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <string>
-#include "Types.h"
+#include "core/Types.h"
+#include "core/SettingsManager.h"
 
 namespace Core {
 
 class Window {
 public:
-    Window(const std::string& title, i32 width, i32 height);
+    Window(const std::string& title, i32 width, i32 height, bool vsync, ScreenMode screenMode);
     ~Window();
 
     // Non-copyable - there should only ever be one window
@@ -16,7 +17,7 @@ public:
 
     bool IsValid() const;
     SDL_Renderer* GetRenderer() const;
-    SDL_Window* GetHandle() const;
+    SDL_Window*   GetHandle()   const;
 
 private:
     SDL_Window*   m_window   = nullptr;

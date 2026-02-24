@@ -1,5 +1,5 @@
 #include "core/Game.h"
-#include "core/GameplayState.h"
+#include "core/MenuState.h"
 #include <SDL3/SDL.h>
 
 namespace Core {
@@ -9,7 +9,9 @@ Game::Game(SettingsManager settings)
     m_window = std::make_unique<Window>(
         m_settings.window.title,
         m_settings.window.width,
-        m_settings.window.height
+        m_settings.window.height,
+        m_settings.graphics.vsync,
+        m_settings.graphics.screenMode
     );
 
     if (!m_window->IsValid()) {
@@ -20,13 +22,11 @@ Game::Game(SettingsManager settings)
     m_textureManager = std::make_unique<TextureManager>(m_window->GetRenderer());
     m_debugRenderer  = std::make_unique<DebugRenderer>(m_window->GetRenderer(), m_settings);
 
-    auto gameplay = std::make_unique<GameplayState>(
+    auto menu = std::make_unique<MenuState>(
         m_settings.window.width,
         m_settings.window.height
     );
-    gameplay->InitEntities(*this);
-    gameplay->InitSystems(*this);
-    PushState(std::move(gameplay));
+    PushState(std::move(menu));
 
     m_running = true;
 }
@@ -39,9 +39,14 @@ void Game::Run() {
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
 
-        m_input.BeginFrame();
+        // Clamp delta time to 100ms. Without this, pausing in the debugger or an OS
+        // interruption produces an enormous delta on the next frame, causing everything
+        // to teleport. Also prevents SDL_GetTicks u32 overflow (~49 days) from spiking.
+        constexpr float k_maxDelta = 0.1f;
+        deltaTime = (deltaTime < k_maxDelta) ? deltaTime : k_maxDelta;
 
         ProcessInput();
+        m_input.BeginFrame();
         Update(deltaTime);
         Render(deltaTime);
     }
@@ -89,6 +94,10 @@ void Game::PopState() {
     if (!m_states.empty()) {
         m_states.back()->OnEnter();
     }
+}
+
+void Game::Quit() {
+    m_running = false;
 }
 
 InputManager&          Game::GetInput()          { return m_input; }
