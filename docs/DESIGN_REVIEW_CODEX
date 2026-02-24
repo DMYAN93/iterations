@@ -2,7 +2,7 @@
 
 Date: 2026-02-24
 Scope: Current ECS/SDL architecture with focus on rendering, debug tooling, and gameplay loop.
-Last updated: 2026-02-24 (post fixed-step + deferred state-transition + ECS view/query fixes)
+Last updated: 2026-02-24 (explicit ECS deep-dive added)
 
 ## Role: Technical Lead
 
@@ -32,10 +32,10 @@ Priority: Resolved
 ## Role: Rendering/Performance Engineer
 
 ### Finding 5: Debug tile overlay draws per-tile every frame with no culling
-Evidence: `DebugRenderSystem` loops full tile grid for walkability/grid overlays.
-Risk: debug mode cost scales with map area, not viewport; frame time spikes on large maps.
-Recommendation: Use camera bounds culling and optional stride/Lod for debug overlays.
-Priority: Medium-High
+Status: Fixed locally on branch `codex` (pending commit hash).
+Impact: tile grid/walkability debug overlays are now camera-culled to visible tile bounds.
+Recommendation: optional next step is stride/LOD toggle for very large maps.
+Priority: Resolved
 
 ### Finding 6: Debug text path allocates texture every draw
 Evidence: `DebugRenderer::DrawText` creates/destroys a surface and texture each call.
@@ -56,11 +56,64 @@ Risk: nondeterministic behavior if extra matching entities appear.
 Recommendation: enforce singleton with validation or redesign to explicit active-entity selection.
 Priority: Medium-High
 
+## Explicit ECS Review (Deep Dive)
+
+### ECS Finding A1: Query/read APIs mutate world state on missing components
+Evidence: `World::HasComponent`, `World::GetComponent`, and `World::RemoveComponent` route through `GetOrCreateStore<T>()`, which inserts a store when absent.
+Risk: read paths unexpectedly allocate/modify ECS state; hidden memory growth and harder debugging.
+Best-practice direction: split read-only lookup from creation (`FindStore<T>() const` + `TryGetComponent<T>()`) so reads never mutate.
+Priority: High
+
+### ECS Finding A2: `View<...>()` allocates every call
+Evidence: `World::View` builds and returns a fresh `std::vector<Entity>` each invocation.
+Risk: per-frame heap churn in every system update/render pass; frame-time instability as entity counts grow.
+Best-practice direction: return a lightweight iterable view/iterator pair over an anchor store with inline component checks and zero dynamic allocation.
+Priority: High
+
+### ECS Finding A3: Component storage is hash-map based (not data-oriented)
+Evidence: `ComponentStore<T>` stores components in `std::unordered_map<Entity, T>`.
+Risk: poor cache locality and pointer chasing during hot loops; ECS loses its core performance advantage at medium/high entity counts.
+Best-practice direction: move hot components to sparse-set + dense array layout (`sparse[entity] -> denseIndex`, contiguous `denseComponents`).
+Priority: High
+
+### ECS Finding A4: Entity identity has no generation/version
+Evidence: `Entity` is a raw incrementing `u32` with no alive/version check in `World`.
+Risk: stale handles are indistinguishable from valid entities after lifecycle changes; bugs become silent data corruption instead of safe failure.
+Best-practice direction: use `(index, generation)` entities and validate on every access.
+Priority: Medium-High
+
+### ECS Finding A5: Structural mutations are immediate (no ECS command buffer)
+Evidence: systems can add/remove components directly through `World` API while other systems may be iterating stores in the same frame.
+Risk: iterator invalidation/order-dependent behavior as feature complexity increases.
+Best-practice direction: stage structural changes in a command buffer and flush at deterministic sync points (end of simulation tick).
+Priority: Medium-High
+
+## Best-Possible ECS Target Design
+
+1. Entity model: 64-bit entity handle (`index + generation`) with central alive table and recycle list.
+2. Storage model: sparse-set dense storage per component for cache-friendly iteration; hash maps reserved for low-frequency/editor-only data.
+3. Query model: compile-time typed views (`View<A,B,...>`) that are non-allocating and iterate the smallest anchor set.
+4. Mutation model: command buffer for `Create/Destroy/Add/Remove`, applied between system phases.
+5. Scheduling model: explicit phases (`Input`, `Sim`, `PostSim`, `RenderPrep`, `Render`) with declared read/write component access.
+6. Singleton model: explicit singleton registry (`SetSingleton<T>`, `TryGetSingleton<T>`) instead of first-match iteration conventions.
+7. Render boundary: render systems read an immutable `RenderContext` prepared once per frame (camera, viewport, debug flags), not ad-hoc ECS scans.
+
+## Migration Path (Pragmatic)
+
+1. Introduce non-mutating component reads (`TryGetComponent`, `HasComponent` via `FindStore`) and keep current stores.
+2. Replace `View` vector return with iterable range object (no allocations), then migrate all systems.
+3. Add entity generation/version validation without changing external gameplay code.
+4. Add command buffer for structural mutations and flush in `World::UpdateSystems` boundary.
+5. Convert hottest components (`Transform`, `Velocity`/movement intent, `Sprite`) to dense storage first; keep fallback map-store adapter for others.
+6. Add singleton APIs for camera/player and remove `first + break` logic from systems.
+
 ## Priority Order (Suggested)
-1. Reduce `Game` service-locator coupling via explicit services interface/dependency injection (High).
-2. Improve debug rendering scalability with camera culling (Medium-High).
-3. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
-4. Add debug-text texture caching for repeated strings in `DebugRenderer::DrawText` (Medium).
+1. Make ECS reads non-mutating and replace allocating `View` with zero-allocation iterables (High).
+2. Reduce `Game` service-locator coupling via explicit services interface/dependency injection (High).
+3. Move hot ECS component stores to dense/sparse-set layout (High).
+4. Improve debug rendering scalability with camera culling (Medium-High).
+5. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
+6. Add debug-text texture caching for repeated strings in `DebugRenderer::DrawText` (Medium).
 
 ## Notes
 - Several items are already recognized in `docs/DESIGN_REVIEW.md`; this review confirms and reprioritizes them against near-term architectural risk.
@@ -68,3 +121,4 @@ Priority: Medium-High
 - Fixed-step simulation was addressed in `97453a2`.
 - Deferred state transitions were addressed in `26aa2b5`.
 - ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
+- This update adds an explicit ECS architecture review and a target-design migration plan.

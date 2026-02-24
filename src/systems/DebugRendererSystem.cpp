@@ -5,6 +5,8 @@
 #include "components/SpriteComponent.h"
 #include "components/TilemapComponent.h"
 #include "components/CameraComponent.h"
+#include <algorithm>
+#include <cmath>
 
 namespace Systems {
 
@@ -18,9 +20,16 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
 
     f32 cameraX = 0.0f;
     f32 cameraY = 0.0f;
+    i32 cameraViewportWidth = 0;
+    i32 cameraViewportHeight = 0;
+    bool hasActiveCamera = false;
     for (auto& [entity, camera] : cameras.GetAll()) {
+        (void)entity;
         cameraX = camera.x;
         cameraY = camera.y;
+        cameraViewportWidth = camera.viewportWidth;
+        cameraViewportHeight = camera.viewportHeight;
+        hasActiveCamera = true;
         break;
     }
 
@@ -72,8 +81,42 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
 
         auto& tilemaps = world.GetStore<Components::TilemapComponent>();
         for (auto& [entity, tilemap] : tilemaps.GetAll()) {
-            for (i32 row = 0; row < static_cast<i32>(tilemap.grid.size()); ++row) {
-                for (i32 col = 0; col < static_cast<i32>(tilemap.grid[row].size()); ++col) {
+            (void)entity;
+
+            const i32 rowCount = static_cast<i32>(tilemap.grid.size());
+            if (rowCount <= 0) continue;
+
+            const i32 columnCount = static_cast<i32>(tilemap.grid[0].size());
+            if (columnCount <= 0) continue;
+
+            i32 minVisibleCol = 0;
+            i32 maxVisibleCol = columnCount - 1;
+            i32 minVisibleRow = 0;
+            i32 maxVisibleRow = rowCount - 1;
+
+            if (hasActiveCamera && tilemap.tileWidth > 0 && tilemap.tileHeight > 0) {
+                const float worldLeft = cameraX;
+                const float worldTop = cameraY;
+                const float worldRight = cameraX + static_cast<float>(cameraViewportWidth);
+                const float worldBottom = cameraY + static_cast<float>(cameraViewportHeight);
+
+                minVisibleCol = static_cast<i32>(std::floor(worldLeft / static_cast<float>(tilemap.tileWidth)));
+                maxVisibleCol = static_cast<i32>(std::floor((worldRight - 1.0f) / static_cast<float>(tilemap.tileWidth)));
+                minVisibleRow = static_cast<i32>(std::floor(worldTop / static_cast<float>(tilemap.tileHeight)));
+                maxVisibleRow = static_cast<i32>(std::floor((worldBottom - 1.0f) / static_cast<float>(tilemap.tileHeight)));
+
+                minVisibleCol = std::max(0, minVisibleCol);
+                maxVisibleCol = std::min(columnCount - 1, maxVisibleCol);
+                minVisibleRow = std::max(0, minVisibleRow);
+                maxVisibleRow = std::min(rowCount - 1, maxVisibleRow);
+
+                if (minVisibleCol > maxVisibleCol || minVisibleRow > maxVisibleRow) {
+                    continue;
+                }
+            }
+
+            for (i32 row = minVisibleRow; row <= maxVisibleRow; ++row) {
+                for (i32 col = minVisibleCol; col <= maxVisibleCol; ++col) {
                     const Components::Tile& tile = tilemap.grid[row][col];
 
                     SDL_FRect dst {
