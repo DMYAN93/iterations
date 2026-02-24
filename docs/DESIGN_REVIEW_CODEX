@@ -151,3 +151,31 @@ Status: Fixed locally on branch `codex` (pending commit hash).
 Impact: `InputManager` header/implementation comments now match real runtime ordering and no longer encourage regressive reorder.
 Recommendation: keep call-order contract documented in both `Game::Run` and `InputManager` docs.
 Priority: Resolved
+
+## Dependency Audit (2026-02-24)
+
+### Scope
+Audit focused on unwanted dependencies between ECS systems, components, and engine-layer services.
+
+### Finding D1: `MovementSystem` is coupled to input device layer
+Evidence: `MovementSystem` stores `Core::InputManager&` and directly reads SDL scancodes.
+Risk: movement logic is tied to local keyboard control; harder to reuse for AI, scripted movement, and networking.
+Recommendation: split input capture from simulation movement:
+1. `InputSystem` writes `MovementIntentComponent`.
+2. `MovementSystem` reads `MovementIntentComponent + TransformComponent` only.
+Priority: Medium
+
+### Finding D2: Camera dependency duplicated across render systems
+Evidence: `RenderSystem`, `TilemapSystem`, and `DebugRenderSystem` each resolve camera independently.
+Risk: repeated singleton checks/logging and repeated camera-fetch logic increase drift risk and maintenance overhead.
+Recommendation: compute a per-frame `RenderContext` once (camera position, viewport, debug toggles) and pass it to render systems.
+Priority: Medium
+
+### Finding D3: Debug renderer system is intentionally coupled to engine services
+Evidence: `DebugRenderSystem` depends on `DebugRenderer` and `SettingsManager`.
+Risk: lower reuse outside this engine setup, but contained to debug-only path.
+Recommendation: keep this coupling isolated to debug systems only; do not expand the pattern to gameplay systems.
+Priority: Low-Medium
+
+### Overall Assessment
+No direct cross-system dependencies were found. Systems currently depend on their own component sets and injected services, with the primary improvement area being service-bound gameplay logic (`MovementSystem`) and duplicated camera-fetch logic in render-phase systems.
