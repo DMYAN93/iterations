@@ -20,7 +20,7 @@ Priority: Resolved
 ## Role: Engine/ECS Architect
 
 ### Finding 3: ECS lacks query/view abstraction
-Status: Fixed on branch `codex` in commit `<pending-commit>`.
+Status: Fixed on branch `codex` in commit `da20f9a`.
 Impact: `World::View<...>()` now yields entities that match component sets, and core systems were migrated to remove manual `Has()` filtering loops.
 Priority: Resolved
 
@@ -67,4 +67,4 @@ Priority: Medium-High
 - `DestroyEntity` was fixed in `e2b7f00` and is tracked as resolved.
 - Fixed-step simulation was addressed in `97453a2`.
 - Deferred state transitions were addressed in `26aa2b5`.
-- ECS query/view abstraction was introduced and integrated in core systems in `<pending-commit>`.
+- ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
