@@ -83,8 +83,11 @@ void DebugRenderSystem::Update(ECS::World& world, float deltaTime) {
                         static_cast<float>(tilemap.tileHeight)
                     };
 
-                    if (m_settings.IsDebugEnabled(m_settings.debug.showWalkability) && !tile.walkable) {
-                        m_debugRenderer.DrawFilledRect(dst.x, dst.y, dst.w, dst.h, {255, 0, 0, 80});
+                    if (m_settings.IsDebugEnabled(m_settings.debug.showWalkability)) {
+                        int index = row * static_cast<i32>(tilemap.grid[row].size()) + col;
+                        if (tilemap.blockedTiles.count(index)) {
+                            m_debugRenderer.DrawFilledRect(dst.x, dst.y, dst.w, dst.h, {255, 0, 0, 80});
+                        }
                     }
 
                     if (m_settings.IsDebugEnabled(m_settings.debug.showTileGrid)) {

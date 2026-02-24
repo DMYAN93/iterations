@@ -1,9 +1,9 @@
 # Iterations — Claude Code Context
 
-Read `docs/PROJECT_STATE.md` for full architecture, folder structure, vcpkg dependencies, SDL3 gotchas,
+Read `PROJECT_STATE.md` for full architecture, folder structure, vcpkg dependencies, SDL3 gotchas,
 working features, and known tech debt before starting any task.
 
-Read `docs/CHAT_PREFERENCES.md` for interaction conventions.
+Read `CHAT_PREFERENCES.md` for interaction conventions.
 
 ---
 
@@ -29,3 +29,16 @@ Read `docs/CHAT_PREFERENCES.md` for interaction conventions.
 - Explain the **why**, not just the what. Prose over bullet points.
 - **Design discussion before every new feature** — plan files, decisions, trade-offs, then ask to proceed.
 - At the end of a milestone, include a **"How to test"** section.
+
+---
+
+## Build System
+
+- **CMake** is at: `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe`
+- **Ninja** is at: `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe`
+- **MSVC compiler** (amd64): `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\`
+- **Build folder:** `build/` in project root
+- **Configure command:** `cmake -S . -B build -G Ninja`
+- **Build command:** `cmake --build build --config Debug`
+- Do not search PATH for cmake or ninja — use the full paths above directly.
+- New `.cpp` files require reconfigure before build (`cmake -S . -B build -G Ninja`) since GLOB_RECURSE is used.

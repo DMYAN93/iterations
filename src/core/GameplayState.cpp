@@ -1,15 +1,16 @@
 #include "core/GameplayState.h"
 #include "core/Game.h"
 #include "core/PausedState.h"
+#include "core/TilemapLoader.h"
 #include <SDL3/SDL.h>
 #include "systems/DebugRendererSystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/MovementSystem.h"
 #include "systems/CollisionSystem.h"
-#include "components/CollisionComponent.h"
 #include "systems/CameraSystem.h"
 #include "systems/TilemapSystem.h"
 #include "systems/AnimationSystem.h"
+#include "components/CollisionComponent.h"
 #include "components/TransformComponent.h"
 #include "components/RenderComponent.h"
 #include "components/PlayerComponent.h"
@@ -25,9 +26,11 @@ GameplayState::GameplayState(int width, int height)
 }
 
 void GameplayState::OnEnter() {
+    SDL_Log("GameplayState: entered.");
 }
 
 void GameplayState::OnExit() {
+    SDL_Log("GameplayState: exited.");
 }
 
 void GameplayState::InitEntities(Game& game) {
@@ -48,9 +51,6 @@ void GameplayState::InitEntities(Game& game) {
     if (playerTex) {
         m_world.AddComponent<Components::SpriteComponent>(playerEntity, {playerTex, {}, true});
 
-        // Build idle animation clip.
-        // Assumes a horizontal spritesheet with 4 frames, each 32x32px.
-        // Adjust frameW, frameH, and frameCount to match your actual Idle.png.
         const float frameW     = 64.0f;
         const float frameH     = 64.0f;
         const int   frameCount = 2;
@@ -64,42 +64,28 @@ void GameplayState::InitEntities(Game& game) {
         }
 
         Components::AnimationComponent anim;
-        anim.clips["idle"]  = std::move(idleClip);
-        anim.currentClip    = "idle";
-        anim.currentFrame   = 0;
-        anim.elapsedTime    = 0.0f;
+        anim.clips["idle"] = std::move(idleClip);
+        anim.currentClip   = "idle";
+        anim.currentFrame  = 0;
+        anim.elapsedTime   = 0.0f;
 
         m_world.AddComponent<Components::AnimationComponent>(playerEntity, std::move(anim));
     } else {
         m_world.AddComponent<Components::RenderComponent>(playerEntity, {16, 16, 255, 100, 100});
     }
 
-    SDL_Log("Player entity: %u", playerEntity);
+    SDL_Log("GameplayState: player entity %u created.", playerEntity);
 
-    // Tilemap entity
+    // Tilemap entity — loaded from file
     ECS::Entity tilemapEntity = m_world.CreateEntity();
-    SDL_Texture* tilesetTex = m_textureManager->Load("assets/tileset.png");
-
     Components::TilemapComponent tilemap;
-    tilemap.tileset        = tilesetTex;
-    tilemap.tileWidth      = 16;
-    tilemap.tileHeight     = 16;
-    tilemap.tilesetColumns = 8;
 
-    constexpr i32 mapRows = 20;
-    constexpr i32 mapCols = 20;
-    tilemap.grid.resize(mapRows, std::vector<Components::Tile>(mapCols));
-
-    for (i32 row = 0; row < mapRows; ++row) {
-        for (i32 col = 0; col < mapCols; ++col) {
-            bool isBorder = (row == 0 || row == mapRows - 1 ||
-                             col == 0 || col == mapCols - 1);
-            tilemap.grid[row][col] = { isBorder ? 1 : 0, !isBorder };
-        }
+    if (!TilemapLoader::Load("assets/map01.json", m_textureManager, tilemap)) {
+        SDL_Log("GameplayState: failed to load map, tilemap will be empty.");
     }
 
     m_world.AddComponent<Components::TilemapComponent>(tilemapEntity, std::move(tilemap));
-    SDL_Log("Tilemap entity: %u", tilemapEntity);
+    SDL_Log("GameplayState: tilemap entity %u created.", tilemapEntity);
 
     // Camera entity
     ECS::Entity cameraEntity = m_world.CreateEntity();
@@ -107,7 +93,7 @@ void GameplayState::InitEntities(Game& game) {
         0.0f, 0.0f,
         m_width, m_height
     });
-    SDL_Log("Camera entity: %u", cameraEntity);
+    SDL_Log("GameplayState: camera entity %u created.", cameraEntity);
 }
 
 void GameplayState::InitSystems(Game& game) {

@@ -28,7 +28,7 @@ src/core/SettingsManager.h
 src/core/TextureManager.cpp
 src/core/TextureManager.h
 src/core/Types.h
-src/core/WIndow.cpp
+src/core/Window.cpp
 src/core/Window.h
 src/ecs/ComponentStore.h
 src/ecs/Entity.h

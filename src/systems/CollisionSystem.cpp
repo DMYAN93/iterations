@@ -21,7 +21,8 @@ bool CollisionSystem::OverlapsNonWalkable(
     for (i32 row = top; row <= bottom; ++row) {
         for (i32 col = left; col <= right; ++col) {
             if (row < 0 || row >= mapRows || col < 0 || col >= mapCols) return true;
-            if (!tilemap.grid[row][col].walkable) return true;
+            int index = row * mapCols + col;
+            if (tilemap.blockedTiles.count(index)) return true;
         }
     }
 
