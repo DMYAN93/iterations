@@ -179,3 +179,13 @@ Priority: Low-Medium
 
 ### Overall Assessment
 No direct cross-system dependencies were found. Systems currently depend on their own component sets and injected services, with the primary improvement area being service-bound gameplay logic (`MovementSystem`) and duplicated camera-fetch logic in render-phase systems.
+
+## Historical Snapshot (Merged from root `DESIGN_REVIEW_CODEX`)
+
+The following summary came from the root-level copy and is retained for historical continuity:
+
+1. Fix `DestroyEntity` lifecycle correctness (Critical).
+2. Add fixed-step simulation while keeping rendering variable-rate (High).
+3. Introduce ECS query/view abstraction to remove manual multi-store scans (High).
+4. Defer state transitions to end-of-frame command queue (High).
+5. Improve debug rendering scalability with camera culling (Medium-High).
