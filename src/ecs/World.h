@@ -47,26 +47,20 @@ public:
 private:
     template<typename T>
     ComponentStore<T>& GetOrCreateStore() {
-    auto key = std::type_index(typeid(T));
-    auto it = m_stores.find(key);
-    if (it == m_stores.end()) {
-        auto deleter = [](void* ptr) {
-            delete static_cast<ComponentStore<T>*>(ptr);
-        };
-        auto result = m_stores.emplace(
-            key,
-            std::unique_ptr<void, void(*)(void*)>(
-                new ComponentStore<T>(),
-                deleter
-            )
-        );
-        return *static_cast<ComponentStore<T>*>(result.first->second.get());
+        auto key = std::type_index(typeid(T));
+        auto it = m_stores.find(key);
+        if (it == m_stores.end()) {
+            auto store = std::make_unique<ComponentStore<T>>();
+            auto* raw  = store.get();
+            m_stores.emplace(key, std::move(store));
+            return *raw;
+        }
+
+        return *static_cast<ComponentStore<T>*>(it->second.get());
     }
-    return *static_cast<ComponentStore<T>*>(it->second.get());
-}
 
     Entity m_nextEntity = 1;
-    std::unordered_map<std::type_index, std::unique_ptr<void, void(*)(void*)>> m_stores;
+    std::unordered_map<std::type_index, std::unique_ptr<IComponentStore>> m_stores;
     std::vector<std::unique_ptr<System>> m_updateSystems;
     std::vector<std::unique_ptr<System>> m_renderSystems;
 };

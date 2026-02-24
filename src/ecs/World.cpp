@@ -9,7 +9,7 @@ Entity World::CreateEntity() {
 void World::DestroyEntity(Entity entity) {
     for (auto& [key, store] : m_stores) {
         (void)key;
-        (void)store;
+        store->RemoveEntity(entity);
     }
 }
 

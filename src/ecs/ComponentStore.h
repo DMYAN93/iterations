@@ -5,8 +5,14 @@
 
 namespace ECS {
 
+class IComponentStore {
+public:
+    virtual ~IComponentStore() = default;
+    virtual void RemoveEntity(Entity entity) = 0;
+};
+
 template<typename T>
-class ComponentStore {
+class ComponentStore : public IComponentStore {
 public:
     void Add(Entity entity, T component) {
         m_components[entity] = component;
@@ -36,6 +42,10 @@ public:
 
     std::unordered_map<Entity, T>& GetAll() {
         return m_components;
+    }
+
+    void RemoveEntity(Entity entity) override {
+        Remove(entity);
     }
 
 private:
