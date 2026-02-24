@@ -51,7 +51,7 @@ Impact: simulation now runs on a fixed-step accumulator path while render remain
 Priority: Resolved
 
 ### Finding 8: Singleton-by-convention camera/player usage
-Status: Fixed locally on branch `codex` (pending commit hash).
+Status: Fixed on branch `codex` in commit `1b93347`.
 Impact: camera/player singleton expectations are now explicitly validated; systems no longer rely on implicit `first + break` behavior.
 Recommendation: long-term, move singleton ownership to explicit singleton APIs in ECS.
 Priority: Resolved
@@ -123,5 +123,5 @@ Priority: Medium-High
 - ECS query/view abstraction was introduced and integrated in core systems in `da20f9a`.
 - Debug tile overlay culling was addressed in `810bdc4`.
 - Debug text texture caching was addressed in `b2e41dd`.
-- Camera/player singleton validation was added in `<pending-commit>`.
+- Camera/player singleton validation was added in `1b93347`.
 - This update adds an explicit ECS architecture review and a target-design migration plan.
