@@ -33,9 +33,10 @@ public:
     i32                    GetWindowHeight() const;
 
 private:
+    void PumpEvents();
     void ProcessInput();
     void Update(float deltaTime);
-    void Render(float deltaTime);
+    void Render(float interpolationAlpha, float frameDeltaTime);
 
     // Declaration order is load-bearing:
     // m_settings first — no dependencies.

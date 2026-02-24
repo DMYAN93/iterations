@@ -49,7 +49,9 @@ void MenuState::ProcessInput(Game& game) {
 void MenuState::Update(Game& game, float deltaTime) {
 }
 
-void MenuState::Render(Game& game) {
+void MenuState::Render(Game& game, float interpolationAlpha) {
+    (void)interpolationAlpha;
+
     SDL_Renderer* renderer = game.GetRenderer();
     SDL_SetRenderDrawColor(renderer, 10, 10, 20, 255);
     SDL_RenderClear(renderer);

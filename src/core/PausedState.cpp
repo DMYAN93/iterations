@@ -22,10 +22,10 @@ void PausedState::Update(Game& game, float deltaTime) {
     // Intentionally empty — world is frozen while paused.
 }
 
-void PausedState::Render(Game& game) {
+void PausedState::Render(Game& game, float interpolationAlpha) {
     GameState* below = game.GetStateBelow();
     if (below) {
-        below->DrawScene(game);
+        below->DrawScene(game, interpolationAlpha);
     }
 
     SDL_Renderer* renderer = game.GetRenderer();

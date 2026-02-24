@@ -14,8 +14,8 @@ public:
 
     void ProcessInput(Game& game) override;
     void Update(Game& game, float deltaTime) override;
-    void Render(Game& game) override;
-    void DrawScene(Game& game) override;
+    void Render(Game& game, float interpolationAlpha) override;
+    void DrawScene(Game& game, float interpolationAlpha) override;
 
     void InitEntities(Game& game);
     void InitSystems(Game& game);

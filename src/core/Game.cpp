@@ -1,6 +1,7 @@
 #include "core/Game.h"
 #include "core/MenuState.h"
 #include <SDL3/SDL.h>
+#include <algorithm>
 
 namespace Core {
 
@@ -32,34 +33,51 @@ Game::Game(SettingsManager settings)
 }
 
 void Game::Run() {
-    u32 lastTime = SDL_GetTicks();
+    u64 lastTicksNs = SDL_GetTicksNS();
+    float accumulator = 0.0f;
+
+    const int tickRateHz = std::max(1, m_settings.simulation.tickRateHz);
+    const int maxSubstepsPerFrame = std::max(1, m_settings.simulation.maxSubstepsPerFrame);
+    const float fixedDeltaTime = 1.0f / static_cast<float>(tickRateHz);
+    const float maxFrameDelta = std::max(fixedDeltaTime, m_settings.simulation.maxFrameDelta);
 
     while (m_running && !m_states.empty()) {
-        u32 currentTime = SDL_GetTicks();
-        float deltaTime = (currentTime - lastTime) / 1000.0f;
-        lastTime = currentTime;
+        u64 currentTicksNs = SDL_GetTicksNS();
+        float frameDeltaTime = static_cast<float>((currentTicksNs - lastTicksNs) / 1'000'000'000.0);
+        lastTicksNs = currentTicksNs;
+        frameDeltaTime = std::min(frameDeltaTime, maxFrameDelta);
+        accumulator += frameDeltaTime;
 
-        // Clamp delta time to 100ms. Without this, pausing in the debugger or an OS
-        // interruption produces an enormous delta on the next frame, causing everything
-        // to teleport. Also prevents SDL_GetTicks u32 overflow (~49 days) from spiking.
-        constexpr float k_maxDelta = 0.1f;
-        deltaTime = (deltaTime < k_maxDelta) ? deltaTime : k_maxDelta;
-
-        ProcessInput();
+        PumpEvents();
         m_input.BeginFrame();
-        Update(deltaTime);
-        Render(deltaTime);
+        ProcessInput();
+
+        int substepsProcessed = 0;
+        while (accumulator >= fixedDeltaTime && substepsProcessed < maxSubstepsPerFrame) {
+            Update(fixedDeltaTime);
+            accumulator -= fixedDeltaTime;
+            ++substepsProcessed;
+        }
+
+        if (substepsProcessed == maxSubstepsPerFrame && accumulator >= fixedDeltaTime) {
+            accumulator = 0.0f;
+        }
+
+        const float interpolationAlpha = accumulator / fixedDeltaTime;
+        Render(interpolationAlpha, frameDeltaTime);
     }
 }
 
-void Game::ProcessInput() {
+void Game::PumpEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_EVENT_QUIT) {
             m_running = false;
         }
     }
+}
 
+void Game::ProcessInput() {
     if (!m_states.empty()) {
         m_states.back()->ProcessInput(*this);
     }
@@ -71,11 +89,11 @@ void Game::Update(float deltaTime) {
     }
 }
 
-void Game::Render(float deltaTime) {
+void Game::Render(float interpolationAlpha, float frameDeltaTime) {
     if (!m_states.empty()) {
-        m_states.back()->Render(*this);
+        m_states.back()->Render(*this, interpolationAlpha);
     }
-    m_debugRenderer->DrawFPS(deltaTime);
+    m_debugRenderer->DrawFPS(frameDeltaTime);
     SDL_RenderPresent(m_window->GetRenderer());
 }
 

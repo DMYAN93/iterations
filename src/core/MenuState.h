@@ -17,7 +17,7 @@ public:
 
     void ProcessInput(Game& game) override;
     void Update(Game& game, float deltaTime) override;
-    void Render(Game& game) override;
+    void Render(Game& game, float interpolationAlpha) override;
 
 private:
     i32 m_screenWidth  = 0;
