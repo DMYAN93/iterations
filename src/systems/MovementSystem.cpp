@@ -12,11 +12,8 @@ MovementSystem::MovementSystem(Core::InputManager& input, float speed)
 
 void MovementSystem::Update(ECS::World& world, float deltaTime) {
     auto& transforms = world.GetStore<Components::TransformComponent>();
-    auto& players    = world.GetStore<Components::PlayerComponent>();
 
-    for (auto& [entity, _] : players.GetAll()) {
-        if (!transforms.Has(entity)) continue;
-
+    for (ECS::Entity entity : world.View<Components::PlayerComponent, Components::TransformComponent>()) {
         auto& transform = transforms.Get(entity);
 
         transform.prevX = transform.x;

@@ -3,6 +3,7 @@
 #include <typeindex>
 #include <memory>
 #include <vector>
+#include <tuple>
 #include "Entity.h"
 #include "ComponentStore.h"
 #include "System.h"
@@ -39,6 +40,35 @@ public:
         return GetOrCreateStore<T>();
     }
 
+    template<typename TPrimary, typename... TOthers>
+    std::vector<Entity> View() {
+        auto* primaryStore = FindStore<TPrimary>();
+        if (!primaryStore) {
+            return {};
+        }
+
+        std::tuple<ComponentStore<TOthers>*...> otherStores {FindStore<TOthers>()...};
+        if constexpr (sizeof...(TOthers) > 0) {
+            if (((std::get<ComponentStore<TOthers>*>(otherStores) == nullptr) || ...)) {
+                return {};
+            }
+        }
+
+        std::vector<Entity> entities;
+        entities.reserve(primaryStore->GetAll().size());
+
+        for (const auto& [entity, component] : primaryStore->GetAll()) {
+            (void)component;
+            if constexpr (sizeof...(TOthers) == 0) {
+                entities.push_back(entity);
+            } else if ((std::get<ComponentStore<TOthers>*>(otherStores)->Has(entity) && ...)) {
+                entities.push_back(entity);
+            }
+        }
+
+        return entities;
+    }
+
     void AddUpdateSystem(std::unique_ptr<System> system);
     void AddRenderSystem(std::unique_ptr<System> system);
     void UpdateSystems(float deltaTime);
@@ -57,6 +87,17 @@ private:
         }
 
         return *static_cast<ComponentStore<T>*>(it->second.get());
+    }
+
+    template<typename T>
+    ComponentStore<T>* FindStore() {
+        auto key = std::type_index(typeid(T));
+        auto it = m_stores.find(key);
+        if (it == m_stores.end()) {
+            return nullptr;
+        }
+
+        return static_cast<ComponentStore<T>*>(it->second.get());
     }
 
     Entity m_nextEntity = 1;

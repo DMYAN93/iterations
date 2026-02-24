@@ -2,7 +2,7 @@
 
 Date: 2026-02-24
 Scope: Current ECS/SDL architecture with focus on rendering, debug tooling, and gameplay loop.
-Last updated: 2026-02-24 (post `DestroyEntity` fix)
+Last updated: 2026-02-24 (post fixed-step + deferred state-transition + ECS view/query fixes)
 
 ## Role: Technical Lead
 
@@ -13,18 +13,16 @@ Recommendation: Introduce a narrow `GameServices` interface (or explicit depende
 Priority: High
 
 ### Finding 2: No deferred state-transition boundary
-Evidence: state operations can be called during update/render lifecycles.
-Risk: state stack mutation during active execution can invalidate assumptions and cause edge-case crashes.
-Recommendation: Queue push/pop/swap commands and apply once per frame at a safe sync point.
-Priority: High
+Status: Fixed on branch `codex` in commit `26aa2b5`.
+Impact: push/pop/swap state operations are now queued and applied at a safe frame boundary.
+Priority: Resolved
 
 ## Role: Engine/ECS Architect
 
 ### Finding 3: ECS lacks query/view abstraction
-Evidence: systems iterate full stores and manually guard with `Has()` checks.
-Risk: repetitive boilerplate, accidental O(N) over-scans, hidden singleton assumptions.
-Recommendation: Add typed views (e.g., `View<Transform, Sprite>()`) that yield only matching entities.
-Priority: High
+Status: Fixed on branch `codex` in commit `<pending-commit>`.
+Impact: `World::View<...>()` now yields entities that match component sets, and core systems were migrated to remove manual `Has()` filtering loops.
+Priority: Resolved
 
 ### Finding 4: Entity lifecycle issue (`DestroyEntity`) is resolved
 Status: Fixed on branch `codex` in commit `e2b7f00`.
@@ -48,10 +46,9 @@ Priority: Medium
 ## Role: Reliability/QA
 
 ### Finding 7: Simulation and render are still coupled to frame rate
-Evidence: `Game::Run` uses a single variable-step loop; systems update once per rendered frame.
-Risk: gameplay determinism, replayability, and fast-forward/simulation scaling become difficult.
-Recommendation: introduce a fixed-step simulation loop with an accumulator and keep rendering variable-rate.
-Priority: High
+Status: Fixed on branch `codex` in commit `97453a2`.
+Impact: simulation now runs on a fixed-step accumulator path while render remains variable-rate/interpolation-ready.
+Priority: Resolved
 
 ### Finding 8: Singleton-by-convention camera/player usage
 Evidence: camera/player logic frequently takes first entry and `break`s.
@@ -60,11 +57,14 @@ Recommendation: enforce singleton with validation or redesign to explicit active
 Priority: Medium-High
 
 ## Priority Order (Suggested)
-1. Add fixed-step simulation (accumulator + fixed tick) while keeping rendering variable-rate (High).
-2. Introduce ECS query/view abstraction to remove manual multi-store scans (High).
-3. Defer state transitions to end-of-frame command queue (High).
-4. Improve debug rendering scalability with camera culling (Medium-High).
+1. Reduce `Game` service-locator coupling via explicit services interface/dependency injection (High).
+2. Improve debug rendering scalability with camera culling (Medium-High).
+3. Replace singleton-by-convention (`first + break`) with explicit singleton validation/selection (Medium-High).
+4. Add debug-text texture caching for repeated strings in `DebugRenderer::DrawText` (Medium).
 
 ## Notes
 - Several items are already recognized in `docs/DESIGN_REVIEW.md`; this review confirms and reprioritizes them against near-term architectural risk.
-- `DestroyEntity` was fixed after this review draft and is now tracked as resolved.
+- `DestroyEntity` was fixed in `e2b7f00` and is tracked as resolved.
+- Fixed-step simulation was addressed in `97453a2`.
+- Deferred state transitions were addressed in `26aa2b5`.
+- ECS query/view abstraction was introduced and integrated in core systems in `<pending-commit>`.

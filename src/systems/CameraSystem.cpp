@@ -8,17 +8,15 @@ namespace Systems {
 
 void CameraSystem::Update(ECS::World& world, float deltaTime) {
     auto& cameras    = world.GetStore<Components::CameraComponent>();
-    auto& players    = world.GetStore<Components::PlayerComponent>();
     auto& transforms = world.GetStore<Components::TransformComponent>();
 
     ECS::Entity playerEntity = ECS::NULL_ENTITY;
-    for (auto& [entity, _] : players.GetAll()) {
+    for (ECS::Entity entity : world.View<Components::PlayerComponent, Components::TransformComponent>()) {
         playerEntity = entity;
         break;
     }
 
     if (playerEntity == ECS::NULL_ENTITY) return;
-    if (!transforms.Has(playerEntity))   return;
 
     auto& playerTransform = transforms.Get(playerEntity);
 

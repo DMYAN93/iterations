@@ -30,7 +30,6 @@ bool CollisionSystem::OverlapsNonWalkable(
 }
 
 void CollisionSystem::Update(ECS::World& world, float deltaTime) {
-    auto& transforms = world.GetStore<Components::TransformComponent>();
     auto& collisions = world.GetStore<Components::CollisionComponent>();
     auto& tilemaps   = world.GetStore<Components::TilemapComponent>();
 
@@ -41,10 +40,9 @@ void CollisionSystem::Update(ECS::World& world, float deltaTime) {
     }
     if (!tilemap) return;
 
-    for (auto& [entity, collision] : collisions.GetAll()) {
-        if (!transforms.Has(entity)) continue;
-
-        auto& transform = transforms.Get(entity);
+    for (ECS::Entity entity : world.View<Components::CollisionComponent, Components::TransformComponent>()) {
+        auto& collision = collisions.Get(entity);
+        auto& transform = world.GetComponent<Components::TransformComponent>(entity);
 
         float hitboxX = transform.x - (collision.width  / 2.0f) + collision.offsetX;
         float hitboxY = transform.y - (collision.height / 2.0f) + collision.offsetY;
