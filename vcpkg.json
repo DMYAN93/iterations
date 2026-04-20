@@ -8,6 +8,7 @@
             "features": ["png", "jpeg"]
         },
         "sdl3-ttf",
-        "nlohmann-json"
+        "nlohmann-json",
+        "flecs"
     ]
 }
